@@ -36,6 +36,9 @@ jobs:
     services:
       kafka:
         image: bitnami/kafka:3.6
+        credentials:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
         ports:
           - 9092:9092
         env:
