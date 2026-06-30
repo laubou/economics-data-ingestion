@@ -52,3 +52,20 @@ variable "kafka_topic" {
   type        = string
   default     = "sales-events"
 }
+
+# ---- ECS (supplied externally until the ECS module is added) ----
+
+variable "ecs_cluster_arn" {
+  description = "ARN of the ECS cluster where pipeline Fargate tasks run."
+  type        = string
+}
+
+variable "downloader_task_definition_arn" {
+  description = "ARN of the ECS task definition for the downloader service."
+  type        = string
+}
+
+variable "producer_task_definition_arn" {
+  description = "ARN of the ECS task definition for the producer service."
+  type        = string
+}

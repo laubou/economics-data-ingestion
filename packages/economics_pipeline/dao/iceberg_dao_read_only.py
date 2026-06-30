@@ -43,11 +43,14 @@ class LocalBronzeReader:
             logger.warning("Bronze path does not exist: %s", self._path)
             return
         for filename in sorted(os.listdir(self._path)):
-            if not filename.endswith(".json"):
+            if not filename.endswith(".ndjson"):
                 continue
             filepath = os.path.join(self._path, filename)
             with open(filepath) as f:
-                yield BronzeRecord.model_validate(json.load(f))
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        yield BronzeRecord.model_validate(json.loads(line))
 
 
 # ═══════════════════════════════════════════════════════════════════════════ #

@@ -111,9 +111,9 @@ module "scheduler" {
   aws_region   = var.aws_region
   ingestion_cron = "cron(0 9 * * ? *)"  # daily at 09:00 UTC
 
-  ecs_cluster_arn                = module.ecs.cluster_arn
-  downloader_task_definition_arn = module.ecs.downloader_task_definition_arn
-  producer_task_definition_arn   = module.ecs.producer_task_definition_arn
+  ecs_cluster_arn                = var.ecs_cluster_arn
+  downloader_task_definition_arn = var.downloader_task_definition_arn
+  producer_task_definition_arn   = var.producer_task_definition_arn
   private_subnet_ids             = module.networking.private_subnet_ids
   pipeline_security_group_id     = module.networking.msk_security_group_id
 }

@@ -35,8 +35,9 @@ Implements a **medallion architecture** (landing → bronze → silver) on AWS u
 
 ### Delivery guarantees
 
-- **At-least-once** delivery from Kafka (offsets committed after each record is processed)
-- **Idempotent bronze writes** — filenames are `p{partition}_o{offset}.json`; replaying the same offset overwrites the same file
+- **At-least-once** delivery from Kafka (offsets committed after each flush batch of 500 records, not per message)
+- **Idempotent local bronze** — one NDJSON file per flush batch, named `p{partition}_o{first_offset}.ndjson`; replaying the same offset range overwrites the same file
+- **Cloud bronze** — Iceberg append-only; a replay adds a new Parquet file (by design — bronze is the raw audit layer, dedup happens at silver)
 - **Silver deduplication** — `source_kafka_offset` is the idempotency key; replays are no-ops via in-memory seen-set pre-loaded from disk/Iceberg
 
 ---

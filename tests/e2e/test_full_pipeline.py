@@ -92,9 +92,10 @@ class TestFullPipeline:
             "or messages were not delivered. Check 'docker logs kafka'."
         )
 
-        bronze_files = os.listdir(e2e_settings.bronze_path)
-        assert len(bronze_files) == sent, (
-            f"Expected {sent} bronze files, got {len(bronze_files)}"
+        reader = LocalBronzeReader(e2e_settings)
+        bronze_count = sum(1 for _ in reader.read_all())
+        assert bronze_count == sent, (
+            f"Expected {sent} bronze records, got {bronze_count}"
         )
 
     def test_bronze_to_silver(self, e2e_settings: PipelineSettings) -> None:

@@ -38,12 +38,12 @@ def make_silver(order_id: int | None = None,
 
 
 class TestLocalBronzeWriter:
-    def test_flush_creates_one_file_per_record(self, dev_settings: PipelineSettings) -> None:
+    def test_flush_creates_one_file_per_batch(self, dev_settings: PipelineSettings) -> None:
         writer = LocalBronzeWriter(dev_settings)
         writer.append(make_bronze(partition=0, offset=1))
         writer.append(make_bronze(partition=0, offset=2))
         writer.flush()
-        assert len(os.listdir(dev_settings.bronze_path)) == 2
+        assert len(os.listdir(dev_settings.bronze_path)) == 1
 
     def test_filename_encodes_partition_and_offset(self, dev_settings: PipelineSettings) -> None:
         writer = LocalBronzeWriter(dev_settings)

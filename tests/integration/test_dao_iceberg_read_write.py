@@ -59,7 +59,9 @@ class TestLocalBronzeWriterIntegration:
         for i in range(n):
             writer.append(make_bronze(offset=i))
         writer.flush()
-        assert len(os.listdir(dev_settings.bronze_path)) == n
+        assert len(os.listdir(dev_settings.bronze_path)) == 1
+        reader = LocalBronzeReader(dev_settings)
+        assert len(list(reader.read_all())) == n
 
     def test_partial_flush_then_remainder(self, dev_settings: PipelineSettings) -> None:
         writer = LocalBronzeWriter(dev_settings)
@@ -71,7 +73,9 @@ class TestLocalBronzeWriterIntegration:
             writer.append(make_bronze(offset=i))
         writer.flush()
 
-        assert len(os.listdir(dev_settings.bronze_path)) == 10
+        assert len(os.listdir(dev_settings.bronze_path)) == 2
+        reader = LocalBronzeReader(dev_settings)
+        assert len(list(reader.read_all())) == 10
 
     def test_crash_simulation_no_corruption(self, dev_settings: PipelineSettings) -> None:
         """
@@ -89,7 +93,9 @@ class TestLocalBronzeWriterIntegration:
         writer2.append(make_bronze(offset=4))
         writer2.flush()
 
-        assert len(os.listdir(dev_settings.bronze_path)) == 5
+        assert len(os.listdir(dev_settings.bronze_path)) == 2
+        reader = LocalBronzeReader(dev_settings)
+        assert len(list(reader.read_all())) == 5
 
 
 @pytest.mark.integration

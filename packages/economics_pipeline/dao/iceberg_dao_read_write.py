@@ -52,13 +52,17 @@ class LocalBronzeWriter:
 
     @storage_retry
     def flush(self) -> None:
+        if not self._buffer:
+            return
         try:
-            for record in self._buffer:
-                filename = f"p{record.kafka_partition}_o{record.kafka_offset}.json"
-                filepath = os.path.join(self._path, filename)
-                with open(filepath, "w") as f:
-                    json.dump(record.model_dump(mode="json"), f, default=str)
-                logger.debug("Bronze → %s", filepath)
+            self._buffer.sort(key=lambda r: (r.kafka_partition, r.kafka_offset))
+            first = self._buffer[0]
+            filename = f"p{first.kafka_partition}_o{first.kafka_offset}.ndjson"
+            filepath = os.path.join(self._path, filename)
+            with open(filepath, "w") as f:
+                for record in self._buffer:
+                    f.write(json.dumps(record.model_dump(mode="json"), default=str) + "\n")
+            logger.debug("Bronze batch → %s (%d records)", filepath, len(self._buffer))
         except OSError as exc:
             raise IcebergWriteError("sales_bronze", cause=exc) from exc
         finally:

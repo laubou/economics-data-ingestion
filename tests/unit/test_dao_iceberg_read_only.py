@@ -59,7 +59,7 @@ class TestLocalBronzeReader:
         reader = LocalBronzeReader(dev_settings)
         assert list(reader.read_all()) == []
 
-    def test_non_json_files_are_skipped(self, dev_settings: PipelineSettings) -> None:
+    def test_non_ndjson_files_are_skipped(self, dev_settings: PipelineSettings) -> None:
         os.makedirs(dev_settings.bronze_path, exist_ok=True)
         open(os.path.join(dev_settings.bronze_path, "ignore.txt"), "w").close()
 

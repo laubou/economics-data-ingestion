@@ -29,7 +29,7 @@ On startup, `CloudSilverWriter` scans the existing silver table to load all know
 - **Simpler to implement and test**: no Kafka transactions, no idempotent producer configuration.
 - **Restart-safe**: the pre-loaded offset set makes restarts after a failure completely idempotent — no duplicate records appear in silver even if the consumer replays messages.
 - **Transparently auditable**: every silver record carries `source_kafka_offset` — you can always trace a silver row back to the exact Kafka message that produced it.
-- **No bronze duplication**: the bronze filename `p{partition}_o{offset}.json` is also offset-based, making bronze writes idempotent by construction.
+- **Idempotent local bronze**: each flush writes a single NDJSON batch file named `p{partition}_o{first_offset}.ndjson`. Replaying the same Kafka offsets produces the same batch boundaries and the same filename — the file is overwritten atomically, so no duplicate records accumulate locally. In cloud mode (Iceberg), bronze is append-only by design: a replay adds a new Parquet file, but bronze is the raw audit layer and is never queried for dedup — silver is.
 
 **Negative / trade-offs:**
 - At scale (>50M unique offsets), the in-memory offset set may become a bottleneck. Migration path: replace the in-memory set with a DynamoDB conditional put or an Iceberg MERGE INTO.
