@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "economics-pipeline"
+version = "0.1.0"
+description = "Shared library for the IATA economics streaming ingestion pipeline"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "kafka-python==3.0.6",
+    "boto3>=1.28",
+    "requests>=2.31",
+    "tenacity>=8.0",
+    # Iceberg + Glue catalog (cloud DAOs only — not imported in local/dev mode)
+    "pyiceberg[glue,s3]>=0.7",
+    "pyarrow>=14.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["economics_pipeline*"]

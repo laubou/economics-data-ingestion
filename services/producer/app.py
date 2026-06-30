@@ -1,58 +1,78 @@
-from kafka import KafkaProducer
-import json
+"""
+Producer service — Step 2 of the pipeline.
+
+Reads the landed CSV row-by-row and publishes each record to Kafka.
+Keyed by order_id for consistent partition assignment.
+
+Exceptions:
+  - InvalidRecordError : a CSV row cannot be parsed (logged, row skipped)
+  - ProducerError      : Kafka send failed after all retries (fatal, exits)
+  - MaxRetriesExceededError : broker unreachable after 5 attempts (fatal)
+"""
+
 import csv
-import time
+import logging
+import os
 
-print("🚀 Starting Batch → Kafka Producer")
+from economics_pipeline.config import get_settings
+from economics_pipeline.exceptions.base import MaxRetriesExceededError
+from economics_pipeline.exceptions.kafka import ProducerError
+from economics_pipeline.exceptions.validation import InvalidRecordError
+from economics_pipeline.kafka.producer import SalesProducer
+from economics_pipeline.models.sales import SalesRecord
 
-FILE_PATH = "data/landing/2m Sales Records.csv"
-
-producer = KafkaProducer(
-    bootstrap_servers="127.0.0.1:9092",
-    value_serializer=lambda v: json.dumps(v).encode("utf-8")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-8s %(name)s — %(message)s",
 )
+logger = logging.getLogger(__name__)
 
-print("📂 Reading file:", FILE_PATH)
+_LOG_EVERY = 10_000
 
-count = 0
-MAX_ROWS = 10
 
-with open(FILE_PATH, "r", encoding="utf-8") as file:
-    reader = csv.DictReader(file)
+def run() -> None:
+    settings = get_settings()
+    landing_file = os.path.join(settings.landing_path, settings.source_filename)
+    max_rows = settings.max_rows
 
-    for i, row in enumerate(reader):
+    logger.info(
+        "Producer starting | file=%s max_rows=%s topic=%s",
+        landing_file, max_rows or "unlimited", settings.kafka_topic,
+    )
 
-        event = {
-            "order_id": int(row["Order ID"]),
-            "region": row["Region"],
-            "country": row["Country"],
-            "item_type": row["Item Type"],
-            "sales_channel": row["Sales Channel"],
-            "priority": row["Order Priority"],
-            "order_date": row["Order Date"],
-            "ship_date": row["Ship Date"],
+    sent = 0
+    skipped = 0
 
-            "units_sold": int(float(row["Units Sold"])),
-            "unit_price": float(row["Unit Price"]),
-            "unit_cost": float(row["Unit Cost"]),
+    with SalesProducer(settings) as producer:
+        with open(landing_file, encoding="utf-8") as f:
+            for i, row in enumerate(csv.DictReader(f)):
+                if max_rows is not None and i >= max_rows:
+                    logger.info("Dev row cap reached (%d rows)", max_rows)
+                    break
+                try:
+                    record = SalesRecord.from_csv_row(row)
+                    producer.send(record)
+                    sent += 1
+                except InvalidRecordError as exc:
+                    # Bad row: log and skip — do not halt the whole batch
+                    logger.warning("Skipping invalid row %d: %s", i, exc)
+                    skipped += 1
+                except (ProducerError, MaxRetriesExceededError):
+                    # Kafka is unreachable — no point continuing
+                    logger.exception("Fatal Kafka error at row %d — aborting", i)
+                    raise
+                if sent % _LOG_EVERY == 0 and sent > 0:
+                    logger.info("Sent %d records…", sent)
 
-            "total_revenue": float(row["Total Revenue"]),
-            "total_cost": float(row["Total Cost"]),
-            "total_profit": float(row["Total Profit"])
-        }
+    logger.info(
+        "Producer done — %d sent, %d skipped (invalid) to topic '%s'",
+        sent, skipped, settings.kafka_topic,
+    )
 
-        producer.send("sales-events", value=event)
 
-        if i % 2 == 0:
-            print(f"📤 Sent {i} events...")
-
-        count += 1
-        if count >= MAX_ROWS:
-            print("🛑 DEV LIMIT reached (10 rows)")
-            break
-
-        time.sleep(0.01)  # simulate streaming
-
-producer.flush()
-
-print("✅ Batch ingestion completed")
+if __name__ == "__main__":
+    try:
+        run()
+    except Exception as exc:
+        logger.critical("Producer failed: %s", exc, exc_info=True)
+        raise SystemExit(1) from exc

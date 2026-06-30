@@ -14,7 +14,24 @@ __pycache__/
 venv/
 .venv/
 env/
+
+# Environment files — contain secrets; use .env.example as template
 .env
+.env.dev
+.env.int
+.env.uat
+.env.prod
+
+# Terraform state & secrets
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.backup
+infra/.terraform.lock.hcl
+infra/environments/*.backend.hcl
+
+# pytest cache
+.pytest_cache/
+*.egg-info/
 
 # =========================
 # IDE

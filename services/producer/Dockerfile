@@ -1,11 +1,13 @@
-FROM python:3.14.6-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY packages/ /app/packages/
+RUN pip install --no-cache-dir /app/packages/
 
-RUN pip install -r requirements.txt
+COPY services/producer/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY services/producer/app.py .
 
 CMD ["python", "app.py"]

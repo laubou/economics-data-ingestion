@@ -1,1 +1,2 @@
-requests
+economics-pipeline @ file:///app/packages
+requests>=2.31

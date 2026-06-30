@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "economics-data-ingestion"
+version = "0.1.0"
+description = "IATA economics streaming ingestion pipeline"
+requires-python = ">=3.11"
+dependencies = [
+    "economics-pipeline",       # shared package (editable-installed from packages/)
+    "kafka-python==3.0.6",
+    "boto3>=1.28",
+    "requests>=2.31",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-mock>=3.11",
+    "moto[s3,glue,athena]>=4.2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts   = "-v -m 'not integration and not e2e'"
+markers   = [
+    "integration: requires live Kafka/S3 (run with docker-compose up)",
+    "e2e: full pipeline end-to-end (requires docker-compose up)",
+]
+filterwarnings = [
+    # kafka-python 3.x deprecation for lambda serializers — functional, not breaking
+    "ignore:.*does not implement kafka.serializer.*:DeprecationWarning",
+]
+# To run integration tests: pytest tests/integration/ -m integration
+# To run e2e tests:         pytest tests/e2e/ -m e2e
+
+[tool.pyright]
+venvPath          = "."
+venv              = ".venv"
+extraPaths        = ["packages"]
+pythonVersion     = "3.11"
+typeCheckingMode  = "basic"

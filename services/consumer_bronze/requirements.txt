@@ -1,1 +1,2 @@
+economics-pipeline @ file:///app/packages
 kafka-python==3.0.6
