@@ -1,6 +1,6 @@
 # Economics Data Ingestion Pipeline
 
-End-to-end streaming ingestion pipeline for external economics datasets (IATA case study).  
+End-to-end streaming ingestion pipeline for external economics datasets.  
 Implements a **medallion architecture** (landing → bronze → silver) on AWS using Kafka (MSK), Apache Iceberg, and Terraform.
 
 ---
