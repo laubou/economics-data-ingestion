@@ -30,28 +30,32 @@ _BOOTSTRAP = "localhost:9092"
 
 @pytest.fixture(scope="session", autouse=True)
 def docker_stack():
-    """Start kafka + zookeeper before the session, tear down after."""
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    """Start kafka + zookeeper before the session, tear down after.
+    In CI, the stack is already running as a service container — skip compose."""
+    in_ci = os.environ.get("CI") == "true"
 
-    print("\n[integration] Starting Docker stack...")
-    subprocess.run(
-        ["docker", "compose", "up", "-d", "zookeeper", "kafka"],
-        cwd=project_root,
-        check=True,
-    )
+    if not in_ci:
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        print("\n[integration] Starting Docker stack...")
+        subprocess.run(
+            ["docker", "compose", "up", "-d", "zookeeper", "kafka"],
+            cwd=project_root,
+            check=True,
+        )
 
     _wait_for_kafka_ready(retries=30, delay=3)
     print("[integration] Kafka ready.")
 
     yield
 
-    print("\n[integration] Stopping Docker stack...")
-    subprocess.run(
-        ["docker", "compose", "down", "--volumes", "--remove-orphans"],
-        cwd=project_root,
-        check=False,
-    )
-    print("[integration] Docker stack stopped.")
+    if not in_ci:
+        print("\n[integration] Stopping Docker stack...")
+        subprocess.run(
+            ["docker", "compose", "down", "--volumes", "--remove-orphans"],
+            cwd=project_root,
+            check=False,
+        )
+        print("[integration] Docker stack stopped.")
 
 
 def _wait_for_kafka_ready(retries: int, delay: int) -> None:
