@@ -86,28 +86,25 @@ class TestBronzeConsumerExceptions:
         # order_id comes from the random payload — check it round-tripped correctly
         assert bronze.data.order_id == payload["order_id"]
 
-    def test_offset_committed_after_successful_yield(
+    def test_consume_never_commits_offsets(
         self, mock_kafka_consumer: MagicMock, dev_settings
     ) -> None:
+        """consume() must not commit — caller (app.py) commits after flush()."""
         msg = _make_kafka_message(_make_valid_payload())
         mock_kafka_consumer.__iter__ = MagicMock(return_value=iter([msg]))
 
         consumer = BronzeConsumer(dev_settings)
         list(consumer.consume())
 
-        mock_kafka_consumer.commit.assert_called_once()
+        mock_kafka_consumer.commit.assert_not_called()
 
-    def test_offset_not_committed_on_invalid_message(
+    def test_commit_delegates_to_underlying_consumer(
         self, mock_kafka_consumer: MagicMock, dev_settings
     ) -> None:
-        bad_message = _make_kafka_message({"garbage": True})
-        mock_kafka_consumer.__iter__ = MagicMock(return_value=iter([bad_message]))
-
         consumer = BronzeConsumer(dev_settings)
-        with pytest.raises(InvalidRecordError):
-            list(consumer.consume())
+        consumer.commit()
 
-        mock_kafka_consumer.commit.assert_not_called()
+        mock_kafka_consumer.commit.assert_called_once()
 
     def test_missing_date_field_raises_invalid_record_error(
         self, mock_kafka_consumer: MagicMock, dev_settings
@@ -133,4 +130,4 @@ class TestBronzeConsumerExceptions:
         consumer = BronzeConsumer(dev_settings)
         records = list(consumer.consume())
         assert len(records) == 5
-        assert mock_kafka_consumer.commit.call_count == 5
+        mock_kafka_consumer.commit.assert_not_called()

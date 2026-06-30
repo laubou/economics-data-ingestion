@@ -59,16 +59,19 @@ def run() -> None:
                 count += 1
                 if count % FLUSH_EVERY == 0:
                     writer.flush()
-                    logger.info("Flushed %d bronze records", count)
+                    consumer.commit()  # commit only after durable write
+                    logger.info("Flushed and committed %d bronze records", count)
+            # Final flush for the tail batch (< FLUSH_EVERY records)
+            writer.flush()
+            consumer.commit()
     except (ConsumerError, MaxRetriesExceededError):
         logger.exception("Fatal Kafka error — flushing buffer before exit")
-        writer.flush()
+        writer.flush()  # best-effort; commit impossible (Kafka unreachable)
         raise
     except IcebergWriteError:
         logger.exception("Fatal storage error — bronze write failed")
         raise
 
-    writer.flush()
     logger.info(
         "Bronze consumer done — %d written, %d skipped to %s",
         count, skipped, settings.bronze_path,

@@ -48,3 +48,10 @@ infra/environments/*.backend.hcl
 # LOGS
 # =========================
 *.log
+
+# =========================
+# PRESENTATIONS
+# =========================
+*.pptx
+*.ppt
+prep/

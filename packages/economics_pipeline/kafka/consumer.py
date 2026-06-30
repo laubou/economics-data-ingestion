@@ -21,11 +21,10 @@ class BronzeConsumer:
     """
     Consumes from the sales-events topic and emits BronzeRecords.
 
-    Offset management: auto_commit is DISABLED. Offsets are committed
-    only after the record has been successfully yielded and processed
-    by the caller (at-least-once delivery). On crash/restart the
-    consumer replays from the last committed offset; the bronze writer's
-    idempotent filenames absorb the replay without duplicating records.
+    Offset management: auto_commit is DISABLED. Offsets must be committed
+    explicitly by the caller via commit() — always after a successful
+    flush() so that the committed position is never ahead of what is
+    durably written to bronze (true at-least-once at the storage level).
 
     Invalid messages: if a message cannot be parsed into a SalesRecord,
     an InvalidRecordError is raised. The service layer decides whether
@@ -85,8 +84,10 @@ class BronzeConsumer:
                 ) from exc
 
             yield record
-            # Commit only after the caller has processed the record
-            self._consumer.commit()
+
+    def commit(self) -> None:
+        """Commit all consumed offsets. Call after a successful flush()."""
+        self._consumer.commit()
 
     def close(self) -> None:
         self._consumer.close()
