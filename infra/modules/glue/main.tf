@@ -7,7 +7,7 @@ locals {
 
 resource "aws_glue_catalog_database" "main" {
   name        = local.name
-  description = "IATA economics pipeline — bronze and silver Iceberg tables"
+  description = "Economics pipeline — bronze and silver Iceberg tables"
 }
 
 # ---- IAM role for Glue crawlers / jobs ----
